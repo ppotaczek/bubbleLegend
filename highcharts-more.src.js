@@ -4262,12 +4262,12 @@
 		        bubbleLegend: {
 		            position: 0, // Number
 		            enabled: false,
-		            color: '#8bbc21',
-		            borderColor: '#2f7ed8',
-		            borderWidth: 1,
-		            connectorDistance: 80,
+		            color: 'rgba(124, 181, 236, 0.5)',
+		            borderColor: '#058DC7',
+		            borderWidth: 2,
+		            connectorDistance: 60,
 		            connectorWidth: 1,
-		            connectorColor: 'red',
+		            connectorColor: '#058DC7',
 		            className: undefined,
 		            connectorClassName: undefined,
 		            sizeBy: 'area', //width
@@ -4285,8 +4285,8 @@
 		                x: 1,
 		                y: 0
 		            },
-		            minSize: undefined,  // Number
-		            maxSize: undefined,  // Number
+		            minSize: 10,  // Number
+		            maxSize: 60,  // Number
 		            ranges: undefined // Array
 		        }
 		    }
