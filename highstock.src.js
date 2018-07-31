@@ -1,5 +1,5 @@
 /**
- * @license Highstock JS v6.1.1-modified (2018-07-26)
+ * @license Highstock JS v6.1.1-modified (2018-07-31)
  *
  * (c) 2009-2016 Torstein Honsi
  *
@@ -19786,7 +19786,6 @@
 		 * License: www.highcharts.com/license
 		 */
 		var H = Highcharts,
-
 		    addEvent = H.addEvent,
 		    css = H.css,
 		    discardElement = H.discardElement,
