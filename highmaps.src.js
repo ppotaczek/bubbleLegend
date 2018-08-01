@@ -1,5 +1,5 @@
 /**
- * @license Highmaps JS v6.1.1-modified (2018-07-31)
+ * @license Highmaps JS v6.1.1-modified (2018-08-01)
  *
  * (c) 2011-2016 Torstein Honsi
  *
@@ -37024,10 +37024,11 @@
 		setOptions({
 		    legend: {
 		      /**
-		       * A bubble series is a three dimensional series type where each point renders
-		       * an X, Y and Z value. Each points is drawn as a bubble where the position
-		       * along the X and Y axes mark the X and Y values, and the size of the bubble
-		       * relates to the Z value. Requires `highcharts-more.js`.
+		       * The bubble legend is an additional element in legend which presents
+		       * the scale of the bubble series. Individual bubble ranges can be
+		       * defined by user or calculated from series. In the case of
+		       * automatically calculated ranges, a 1px margin of error is permitted.
+		       * Requires `highcharts-more.js`.
 		       *
 		       * @product      highcharts highstock highmaps
 		       * @optionparent legend.bubbleLegend
@@ -37036,14 +37037,17 @@
 		            /**
 		             * The color of the ranges borders, can be also defined for an
 		             * individual range.
+		             * @type {Color}
+		             * @sample highcharts/legend/bubblelegend/similartoseries/
+		             *         Similat look to the bubble series
+		             * @sample highcharts/legend/bubblelegend/bordercolor/
+		             *         Individual bubble border color
 		             * @since 7.0.0
 		             */
 		            borderColor: '#058DC7',
 		            /**
 		             * The width of the ranges borders in pixels, can be also defined
 		             * for an individual range.
-		             * @sample {highcharts|highstock} highcharts/legend/padding-itemmargin/
-		             *         Padding and item margins demonstrated
 		             * @since 7.0.0
 		             */
 		            borderWidth: 2,
@@ -37057,6 +37061,11 @@
 		            /**
 		             * The main color of the bubble legend. Applies to ranges, if
 		             * individual color is not defined.
+		             * @type {Color}
+		             * @sample highcharts/legend/bubblelegend/similartoseries/
+		             *         Similat look to the bubble series
+		             * @sample highcharts/legend/bubblelegend/color/
+		             *         Individual bubble color
 		             * @since 7.0.0
 		             */
 		            color: 'rgba(124, 181, 236, 0.5)',
@@ -37075,11 +37084,16 @@
 		            /**
 		             * The length of the connectors in pixels. If labels are centered,
 		             * the distance is reduced to 0.
+		             * @type {Color}
+		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             *         Increased connector length
 		             * @since 7.0.0
 		             */
 		            connectorDistance: 60,
 		            /**
 		             * The width of the connectors in pixels.
+		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             *         Increased connector width
 		             * @since 7.0.0
 		             */
 		            connectorWidth: 1,
@@ -37109,6 +37123,8 @@
 		                 * The alignment of the labels compared to the bubble legend.
 		                 * Can be one of `left`, `center` or `right`.
 		                 * @validvalue ["left", "center", "right"]
+		                 * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		                 *         Labels on left
 		                 * @since 7.0.0
 		                 */
 		                align: 'right',
@@ -37124,6 +37140,7 @@
 		                    fontSize: 10,
 		                    /**
 		                     * @since 7.0.0
+		                     * @type {Color}
 		                     */
 		                    color: '#000000'
 		                },
@@ -37156,12 +37173,18 @@
 		            minSize: 10,  // Number
 		            /**
 		             * The position of the bubble legend in the legend.
+		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             *         Bubble legend as last item in legend
 		             * @since 7.0.0
 		             */
 		            position: 0, // Number
 		            /**
 		             * Options for specific range. One range consists of bubble, label
 		             * and connector.
+		             * @sample highcharts/legend/bubblelegend/ranges/
+		             *         Manually defined ranges
+		             * @sample highcharts/legend/bubblelegend/autoranges/
+		             *         Auto calculated ranges
 		             * @since 7.0.0
 		             * @type {Array<Object>}
 		             */
@@ -37174,15 +37197,18 @@
 		                /**
 		                 * The color of the border for individual range.
 		                 * @since 7.0.0
+		                 * @type {Color}
 		                 */
 		                borderColor: undefined,
 		                /**
 		                 * The color of the bubble for individual range.
+		                 * @type {Color}
 		                 * @since 7.0.0
 		                 */
 		                color: undefined,
 		                /**
 		                 * The color of the connector for individual range.
+		                 * @type {Color}
 		                 * @since 7.0.0
 		                 */
 		                connectorColor: undefined
@@ -37193,6 +37219,8 @@
 		             * corresponds best to the human perception of the size of each
 		             * bubble.
 		             * @validvalue ["area", "width"]
+		             * @sample highcharts/legend/bubblelegend/ranges/
+		             *         Size by width
 		             * @since 7.0.0
 		             */
 		            sizeBy: 'area',
@@ -37702,6 +37730,11 @@
 
 		    // Remove unnecessary element
 		    if (legend.bubbleLegend) {
+		        // Update bubbleLegend dimensions in each redraw
+		        if (legend.bubbleLegend.autoRanges) {
+		            legend.options.bubbleLegend.ranges = null;
+		        }
+
 		        legend.destroyItem(legend.bubbleLegend);
 		    }
 		    // Create bubble legend
@@ -37795,17 +37828,20 @@
 		    bubbleSizes = bubbleLegend.getBubbleSizes(series);
 		    bubbleLegend.autoRanges = false; // to not fall in to infinite loop
 
-		    // Update legend with calculated ranges
-		    this.legend.update({
-		        bubbleLegend: {
-		            minSize: bubbleSizes[0],
-		            maxSize: bubbleSizes[1],
-		            ranges: bubbleLegend.getRanges()
+		    // Update legend with calculated ranges and without animation.
+		    this.update({
+		        legend: {
+		            bubbleLegend: {
+		                minSize: bubbleSizes[0],
+		                maxSize: bubbleSizes[1],
+		                ranges: bubbleLegend.getRanges()
+		            }
 		        }
-		    });
-		    // To correct series bubbles postitions and avoid animation.
+		    }, true, false, false);
+
+		    // Use reflow to correct series bubbles postitions.
 		    this.reflow();
-		    bubbleLegend.autoRanges = true;
+		    this.legend.bubbleLegend.autoRanges = true;
 		});
 
 	}(Highcharts));

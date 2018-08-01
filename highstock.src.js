@@ -1,5 +1,5 @@
 /**
- * @license Highstock JS v6.1.1-modified (2018-07-31)
+ * @license Highstock JS v6.1.1-modified (2018-08-01)
  *
  * (c) 2009-2016 Torstein Honsi
  *
