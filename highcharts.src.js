@@ -1,5 +1,5 @@
 /**
- * @license Highcharts JS v6.1.1-modified (2018-08-01)
+ * @license Highcharts JS v6.1.1-modified (2018-08-02)
  *
  * (c) 2009-2016 Torstein Honsi
  *
@@ -19786,6 +19786,7 @@
 		 * License: www.highcharts.com/license
 		 */
 		var H = Highcharts,
+
 		    addEvent = H.addEvent,
 		    css = H.css,
 		    discardElement = H.discardElement,

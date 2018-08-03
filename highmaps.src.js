@@ -1,5 +1,5 @@
 /**
- * @license Highmaps JS v6.1.1-modified (2018-08-01)
+ * @license Highmaps JS v6.1.1-modified (2018-08-02)
  *
  * (c) 2011-2016 Torstein Honsi
  *
@@ -19671,6 +19671,7 @@
 		 * License: www.highcharts.com/license
 		 */
 		var H = Highcharts,
+
 		    addEvent = H.addEvent,
 		    css = H.css,
 		    discardElement = H.discardElement,
@@ -37038,9 +37039,9 @@
 		             * The color of the ranges borders, can be also defined for an
 		             * individual range.
 		             * @type {Color}
-		             * @sample highcharts/legend/bubblelegend/similartoseries/
+		             * @sample highcharts/bubblelegend/similartoseries/
 		             *         Similat look to the bubble series
-		             * @sample highcharts/legend/bubblelegend/bordercolor/
+		             * @sample highcharts/bubblelegend/bordercolor/
 		             *         Individual bubble border color
 		             * @since 7.0.0
 		             */
@@ -37062,9 +37063,9 @@
 		             * The main color of the bubble legend. Applies to ranges, if
 		             * individual color is not defined.
 		             * @type {Color}
-		             * @sample highcharts/legend/bubblelegend/similartoseries/
+		             * @sample highcharts/bubblelegend/similartoseries/
 		             *         Similat look to the bubble series
-		             * @sample highcharts/legend/bubblelegend/color/
+		             * @sample highcharts/bubblelegend/color/
 		             *         Individual bubble color
 		             * @since 7.0.0
 		             */
@@ -37085,14 +37086,14 @@
 		             * The length of the connectors in pixels. If labels are centered,
 		             * the distance is reduced to 0.
 		             * @type {Color}
-		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             * @sample highcharts/bubblelegend/connectorandlabels/
 		             *         Increased connector length
 		             * @since 7.0.0
 		             */
 		            connectorDistance: 60,
 		            /**
 		             * The width of the connectors in pixels.
-		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             * @sample highcharts/bubblelegend/connectorandlabels/
 		             *         Increased connector width
 		             * @since 7.0.0
 		             */
@@ -37123,7 +37124,7 @@
 		                 * The alignment of the labels compared to the bubble legend.
 		                 * Can be one of `left`, `center` or `right`.
 		                 * @validvalue ["left", "center", "right"]
-		                 * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		                 * @sample highcharts/bubblelegend/connectorandlabels/
 		                 *         Labels on left
 		                 * @since 7.0.0
 		                 */
@@ -37173,7 +37174,7 @@
 		            minSize: 10,  // Number
 		            /**
 		             * The position of the bubble legend in the legend.
-		             * @sample highcharts/legend/bubblelegend/connectorandlabels/
+		             * @sample highcharts/bubblelegend/connectorandlabels/
 		             *         Bubble legend as last item in legend
 		             * @since 7.0.0
 		             */
@@ -37181,9 +37182,9 @@
 		            /**
 		             * Options for specific range. One range consists of bubble, label
 		             * and connector.
-		             * @sample highcharts/legend/bubblelegend/ranges/
+		             * @sample highcharts/bubblelegend/ranges/
 		             *         Manually defined ranges
-		             * @sample highcharts/legend/bubblelegend/autoranges/
+		             * @sample highcharts/bubblelegend/autoranges/
 		             *         Auto calculated ranges
 		             * @since 7.0.0
 		             * @type {Array<Object>}
@@ -37219,7 +37220,7 @@
 		             * corresponds best to the human perception of the size of each
 		             * bubble.
 		             * @validvalue ["area", "width"]
-		             * @sample highcharts/legend/bubblelegend/ranges/
+		             * @sample highcharts/bubblelegend/ranges/
 		             *         Size by width
 		             * @since 7.0.0
 		             */
@@ -37725,20 +37726,36 @@
 		 */
 		addEvent(H.Legend, 'afterGetAllItems', function (e) {
 		    var legend = this,
+		        series = legend.chart.series,
+		        bubbleLegend = legend.bubbleLegend,
 		        legendOptions = legend.options,
-		        bubbleLegendOptions = legendOptions.bubbleLegend;
+		        bubbleLegendOptions = legendOptions.bubbleLegend,
+		        i,
+		        bubbleSeries;
+
+		    // Create bubbleLegend only if bubble series exists
+		    for (i = 0; i < series.length; i++) {
+		        if (series[i].isBubble) {
+		            bubbleSeries = true;
+		            i = series.length;
+		        }
+		    }
 
 		    // Remove unnecessary element
-		    if (legend.bubbleLegend) {
+		    if (bubbleLegend && bubbleLegend.ranges) {
 		        // Update bubbleLegend dimensions in each redraw
-		        if (legend.bubbleLegend.autoRanges) {
+		        if (
+		            bubbleLegend.autoRanges &&
+		            bubbleLegendOptions.ranges &&
+		            bubbleLegendOptions.ranges[0].radius
+		        ) {
 		            legend.options.bubbleLegend.ranges = null;
 		        }
 
-		        legend.destroyItem(legend.bubbleLegend);
+		        legend.destroyItem(bubbleLegend);
 		    }
 		    // Create bubble legend
-		    if (legendOptions.enabled && bubbleLegendOptions.enabled) {
+		    if (bubbleSeries && legendOptions.enabled && bubbleLegendOptions.enabled) {
 		        legend.bubbleLegend = new H.BubbleLegend(bubbleLegendOptions, legend);
 		        legend.bubbleLegend.addToLegend(legend, e.allItems);
 		    }
@@ -37813,15 +37830,56 @@
 		});
 
 		/**
+		 * Event used to separate chart render event coming from click in legend item.
+		 */
+		addEvent(H.Series, 'legendItemClick', function () {
+		    var series = this,
+		        visible = series.visible,
+		        allSeries = series.chart.series,
+		        legend = series.chart.legend,
+		        status,
+		        i,
+		        visibleBubbleSeries = false;
+
+		    series.visible = !visible;
+		    // Hide bubble legend if all bubble series are disabled.
+		    for (i = 0; i < allSeries.length; i++) {
+		        if (allSeries[i].isBubble && allSeries[i].visible) {
+		            visibleBubbleSeries = true;
+		            i = allSeries.length;
+		        }
+		    }
+		    series.visible = visible;
+		    status = visibleBubbleSeries ? true : false;
+
+		    if (legend && legend.bubbleLegend) {
+		        legend.bubbleLegend.legendItemclick = true;
+		        // Hide bubble legend if all bubble series are disabled.
+		        if (legend.bubbleLegend.visible !== status) {
+		            legend.update({
+		                bubbleLegend: {enabled: status}
+		            });
+
+		            legend.bubbleLegend.visible = status;
+		            legend.options.bubbleLegend.animation = true;
+		        }
+		    }
+		});
+
+		/**
 		 * Determine ranges from rendered bubble series and update legend.
 		 */
 		addEvent(H.Chart, 'render', function () {
-		    var bubbleLegend = this.legend.bubbleLegend,
+		    var legend = this.legend,
+		        bubbleLegend = legend.bubbleLegend,
+		        legendItemclick = bubbleLegend.legendItemclick,
 		        series = this.series,
+		        animation = legend.options.bubbleLegend.animation || false,
 		        bubbleSizes;
 
 		    // Stop executing the function if ranges are defined.
-		    if (!bubbleLegend || !bubbleLegend.autoRanges) {
+		    if (!bubbleLegend || !bubbleLegend.autoRanges || legendItemclick) {
+		        legendItemclick = false; // To enable animation
 		        return false
 		    }
 
@@ -37837,11 +37895,13 @@
 		                ranges: bubbleLegend.getRanges()
 		            }
 		        }
-		    }, true, false, false);
+		    }, true, false, animation);
 
 		    // Use reflow to correct series bubbles postitions.
 		    this.reflow();
 		    this.legend.bubbleLegend.autoRanges = true;
+		    // Prevent animation on resize
+		    legend.options.bubbleLegend.animation = false;
 		});
 
 	}(Highcharts));
