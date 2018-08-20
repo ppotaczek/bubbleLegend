@@ -1,5 +1,5 @@
 /**
- * @license Highcharts JS v6.1.1-modified (2018-08-08)
+ * @license Highcharts JS v6.1.1-modified (2018-08-20)
  *
  * (c) 2009-2016 Torstein Honsi
  *
@@ -20617,8 +20617,6 @@
 		        if (!this.proximate) {
 		            this.positionItems();
 		        }
-
-		        fireEvent(legend, 'afterRender');
 		    },
 
 		    /**

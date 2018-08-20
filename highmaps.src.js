@@ -1,5 +1,5 @@
 /**
- * @license Highmaps JS v6.1.1-modified (2018-08-08)
+ * @license Highmaps JS v6.1.1-modified (2018-08-20)
  *
  * (c) 2011-2016 Torstein Honsi
  *
@@ -20502,8 +20502,6 @@
 		        if (!this.proximate) {
 		            this.positionItems();
 		        }
-
-		        fireEvent(legend, 'afterRender');
 		    },
 
 		    /**
@@ -37015,9 +37013,9 @@
 		    Chart = H.Chart,
 
 		    addEvent = H.addEvent,
+		    wrap = H.wrap,
 		    each = H.each,
 		    objectEach = H.objectEach,
-		    isNumber = H.isNumber,
 		    merge = H.merge,
 		    noop = H.noop,
 		    pick = H.pick,
@@ -37246,9 +37244,9 @@
 		        this.visible = true;
 		        this.chart = legend.chart;
 		        this.legend = legend;
-		        this.setState = noop;
-		        this.drawLegendSymbol = this.drawLegendSymbol;
 		    },
+
+		    setState: noop,
 
 		    /**
 		     * Depending on the position option, add bubbleLegend to legend items.
@@ -37290,7 +37288,7 @@
 		        // Reserve space for bubbleLegend and do not create bubbleLegend if
 		        // ranges or ranges valeus are not specified or if are empty array.
 		        if (!ranges || !ranges.length || !ranges[0].value) {
-		            bubbleLegend.autoRanges = true;
+		            legend.options.bubbleLegend.autoRanges = true;
 		            return false;
 		        }
 
@@ -37319,7 +37317,6 @@
 
 		        bubbleLegend.legendItemWidth = size + connectorSpace + itemDistance;
 		        bubbleLegend.legendItemHeight = size + bubbleLegend.fontMetrics.h / 2;
-
 		    },
 
 		    /**
@@ -37476,7 +37473,7 @@
 		            renderer = chart.renderer,
 		            symbols = bubbleLegend.symbols,
 		            labels = symbols.labels,
-		            labelVar,
+		            label,
 		            elementCenter = range.center,
 		            absoluteRadius = Math.abs(range.radius),
 		            connectorDistance = options.connectorDistance,
@@ -37541,7 +37538,7 @@
 		        );
 
 		        // Render label
-		        labelVar = renderer
+		        label = renderer
 		            .text(
 		                bubbleLegend.formatLabel(range),
 		                labelX,
@@ -37555,10 +37552,10 @@
 		                bubbleLegend.legendSymbol
 		            );
 
-		        labels.push(labelVar);
+		        labels.push(label);
 		        // To enable default 'hideOverlappingLabels' method
-		        labelVar.placed = true;
-		        labelVar.alignAttr = {
+		        label.placed = true;
+		        label.alignAttr = {
 		            x: labelX,
 		            y: labelY + labelMovement
 		        };
@@ -37648,7 +37645,7 @@
 		            maxZ;
 
 		        each(series, function (s) {
-		            if (s.isBubble && !s.ignoreSeries) {
+		            if (s.isBubble && s.zData[0] && !s.ignoreSeries) {
 		                minZ = minZ ? Math.min(minZ, arrayMin(s.zData)) :
 		                    arrayMin(s.zData);
 
@@ -37680,16 +37677,14 @@
 		    },
 
 		    /**
-		     * Calculate legend bubble sizes from rendered series.
+		     * Calculate bubble legend sizes from rendered series.
 		     *
 		     * @return {Array} - Calculated min and max bubble sizes
 		     *
 		     * @private
 		     */
-		    getBubbleSizes: function () {
-		        var plotSize,
-		            chart = this.chart,
-		            series = chart.series,
+		    predictBubbleSizes: function () {
+		        var chart = this.chart,
 		            fontMetrics = this.fontMetrics,
 		            legendOptions = chart.legend.options,
 		            floating = legendOptions.floating,
@@ -37697,46 +37692,68 @@
 		            lastLineHeight = horizontal ? chart.legend.lastLineHeight : 0,
 		            plotSizeX = chart.plotSizeX,
 		            plotSizeY = chart.plotSizeY,
-		            i,
-		            minSize,
-		            maxSize,
-		            maxPxSize,
+		            bubbleSeries = chart.series[this.options.seriesIndex],
+		            minSize = Math.ceil(bubbleSeries.minPxSize),
+		            maxPxSize = Math.ceil(bubbleSeries.maxPxSize),
+		            maxSize = bubbleSeries.options.maxSize,
+		            plotSize = Math.min(plotSizeY, plotSizeX),
 		            calculatedSize;
 
-		        // minSize and maxSize are common for all bubble series
-		        for (i = 0; i < series.length; i++) {
-		            if (series[i].isBubble) {
-		                minSize = Math.ceil(series[i].minPxSize);
-		                maxPxSize = Math.ceil(series[i].maxPxSize);
-		                maxSize = series[i].options.maxSize;
-		                plotSize = Math.min(
-		                    series[i].chart.plotSizeY,
-		                    series[i].chart.plotSizeX
-		                );
-		                i = series.length;
-		            }
-		        }
 		        // Calculate prediceted max size of bubble
 		        if (floating || !(/%$/.test(maxSize))) {
 		            calculatedSize = maxPxSize;
 
 		        } else {
 		            maxSize = parseFloat(maxSize);
-		            calculatedSize = ((plotSize + lastLineHeight - fontMetrics.h / 2) *
-		                maxSize / 100) / (maxSize / 100 + 1);
 
-		            // Get maxPxSize from bubble series if calculated bubble legend
-		            // size will not affect to bubbles series.
+		            calculatedSize = ((plotSize + lastLineHeight - fontMetrics.h / 2) *
+		               maxSize / 100) / (maxSize / 100 + 1);
+
+		           // Get maxPxSize from bubble series if calculated bubble legend
+		           // size will not affect to bubbles series.
 		            if (
-		                (horizontal && plotSizeY - calculatedSize >=
-		                plotSizeX) || (!horizontal && plotSizeX -
-		                calculatedSize >= plotSizeY)
-		            ) {
+		               (horizontal && plotSizeY - calculatedSize >=
+		               plotSizeX) || (!horizontal && plotSizeX -
+		               calculatedSize >= plotSizeY)
+		           ) {
 		                calculatedSize = maxPxSize;
 		            }
 		        }
 
 		        return [minSize, Math.ceil(calculatedSize)];
+		    },
+
+		    /**
+		     * Correct ranges with calculated sizes.
+		     *
+		     * @private
+		     */
+		    updateRanges: function (min, max) {
+		        var legend = this.legend;
+
+		        legend.options.bubbleLegend.minSize = min;
+		        legend.options.bubbleLegend.maxSize = max;
+		        legend.options.bubbleLegend.ranges = this.getRanges();
+		    },
+
+		    /**
+		     * Because of the possibility of creating another line, predicted bubble
+		     * legend sizes may differ by a few pixels, so it is necessary to correct
+		     * them.
+		     *
+		     * @private
+		     */
+		    correctSizes: function () {
+		        var legend = this.legend,
+		            chart = this.chart,
+		            bubbleSeries = chart.series[this.options.seriesIndex],
+		            bubbleSeriesSize = bubbleSeries.maxPxSize,
+		            bubbleLegendSize = this.options.maxSize;
+
+		        if (Math.abs(Math.ceil(bubbleSeriesSize) - bubbleLegendSize) > 1) {
+		            this.updateRanges(bubbleSeries.minPxSize, bubbleSeries.maxPxSize);
+		            legend.render();
+		        }
 		    }
 		};
 
@@ -37748,7 +37765,7 @@
 		        bubbleLegend = legend.bubbleLegend,
 		        legendOptions = legend.options,
 		        bubbleLegendOptions = legendOptions.bubbleLegend,
-		        bubbleSeriesIndex = legend.chart.hasVisibleBubbleSeries();
+		        bubbleSeriesIndex = legend.chart.getVisibleBubbleSeriesIndex();
 
 		    // Remove unnecessary element
 		    if (bubbleLegend && bubbleLegend.ranges) {
@@ -37763,7 +37780,7 @@
 		        legend.destroyItem(bubbleLegend);
 		    }
 		    // Create bubble legend
-		    if (isNumber(bubbleSeriesIndex) &&
+		    if (bubbleSeriesIndex >= 0 &&
 		            legendOptions.enabled &&
 		            bubbleLegendOptions.enabled
 		    ) {
@@ -37780,16 +37797,16 @@
 		 *
 		 * @private
 		 */
-		Chart.prototype.hasVisibleBubbleSeries = function () {
+		Chart.prototype.getVisibleBubbleSeriesIndex = function () {
 		    var series = this.series,
 		        i = series.length;
 
 		    while (i--) {
-		        if (series[i].isBubble && series[i].visible) {
+		        if (series[i].isBubble && series[i].visible && series[i].zData[0]) {
 		            return i;
 		        }
 		    }
-		    return false;
+		    return -1;
 		};
 
 		/**
@@ -37807,7 +37824,7 @@
 		        i = 0,
 		        j = 0;
 
-		    for (i; i < length; i++) {
+		    for (i = 0; i < length; i++) {
 		        if (items[i].legendItemHeight) {
 		            // for bubbleLegend
 		            items[i].itemHeight = items[i].legendItemHeight;
@@ -37815,8 +37832,8 @@
 		        if (  // Line break
 		            items[i] === items[length - 1] ||
 		            items[i + 1] &&
-		            items[i].legendGroup.translateY !==
-		            items[i + 1].legendGroup.translateY
+		            items[i]._legendItemPos[1] !==
+		            items[i + 1]._legendItemPos[1]
 		        ) {
 		            lines.push({ height: 0 });
 		            lastLine = lines[lines.length - 1];
@@ -37845,20 +37862,17 @@
 		        orgTranslateY,
 		        movementX,
 		        rtl = this.options.rtl,
-		        sizeMovement,
 		        actualLine = 0;
 
 		    each(items, function (item, index) {
 		        orgTranslateX = item.legendGroup.translateX;
-		        orgTranslateY = item.legendGroup.translateY;
-		        movementX = item.movementX;
-		        sizeMovement = item.sizeMovement;
+		        orgTranslateY = item._legendItemPos[1];
 
-		        if (movementX || (rtl && item.ranges) || sizeMovement) {
-		            sizeMovement = sizeMovement ? sizeMovement : 0;
-		            movementX = rtl ? orgTranslateX - item.size +
-		                this.symbolWidth + sizeMovement :
-		                orgTranslateX + movementX + sizeMovement;
+		        movementX = item.movementX;
+
+		        if (movementX || (rtl && item.ranges)) {
+		            movementX = rtl ? orgTranslateX - item.options.maxSize / 2 :
+		            orgTranslateX + movementX;
 
 		            item.legendGroup.attr({ translateX: movementX });
 		        }
@@ -37875,14 +37889,7 @@
 		};
 
 		/**
-		 * Event used to correct items positions with different dimensions in legend.
-		 */
-		addEvent(H.Legend, 'afterRender', function () {
-		    this.retranslateItems(this.getLinesHeights());
-		});
-
-		/**
-		 * Event used to separate chart render event coming from click in legend item.
+		 * Hide or show bubble legend depending on the visible status of bubble series.
 		 */
 		addEvent(Series, 'legendItemClick', function () {
 		    var series = this,
@@ -37892,20 +37899,19 @@
 		        status;
 
 		    if (legend && legend.bubbleLegend) {
-		        // Visible property is not set correctly yet, so temporary correct it.
+		        // Visible property is not set correctly yet, so temporary correct it
 		        series.visible = !visible;
-		        // Save future status
-		        series.ignoreSeries = visible ? true : false;
-
+		        // Save future status for getRanges method
+		        series.ignoreSeries = visible;
 		        // Check if at lest one bubble series is visible
-		        status = isNumber(chart.hasVisibleBubbleSeries());
+		        status = chart.getVisibleBubbleSeriesIndex() >= 0;
 
 		        // Hide bubble legend if all bubble series are disabled
 		        if (legend.bubbleLegend.visible !== status) {
 		            // Show or hide bubble legend
 		            legend.update({
 		                bubbleLegend: { enabled: status }
-		            }, false);  // Redraw after render
+		            });
 
 		            legend.bubbleLegend.visible = status; // Restore default status
 		        }
@@ -37915,40 +37921,44 @@
 		});
 
 		/**
-		 * Determine ranges from rendered bubble series and update legend.
+		 * If ranges are not specified, determine ranges from rendered bubble series
+		 * and render legend again.
 		 */
-		addEvent(Chart, 'render', function () {
-		    var legend = this.legend,
-		        bubbleLegend = legend.bubbleLegend,
-		        animation = legend.options.bubbleLegend.animation || false,
+		wrap(Chart.prototype, 'drawChartBox', function (proceed, options, callback) {
+		    var chart = this,
+		        legend = chart.legend,
 		        bubbleSizes;
 
-		    // Stop executing the function if ranges are defined
-		    if (!bubbleLegend || !bubbleLegend.autoRanges) {
-		        return false;
+		    if (
+		        legend && legend.bubbleLegend &&
+		        legend.options.bubbleLegend.autoRanges
+		    ) {
+		        bubbleSizes = legend.bubbleLegend.predictBubbleSizes();
+
+		        legend.bubbleLegend.updateRanges(bubbleSizes[0], bubbleSizes[1]);
+		        // Create legend with bubbleLegend
+		        legend.render();
+
+		        chart.getMargins();
+
+		        each(chart.axes, function (axis) {
+		            axis.updateNames();
+		            axis.setScale();
+		        });
+		        // After recalculate axes, calculate margins again.
+		        chart.getMargins();
+
+		        // Call default 'drawChartBox' method.
+		        proceed.call(chart, options, callback);
+
+		        // Check bubble legend sizes and correct them if necessary.
+		        legend.bubbleLegend.correctSizes();
+		        // Correct items positions with different dimensions in legend.
+		        legend.retranslateItems(legend.getLinesHeights());
+
+		    } else {
+		        proceed.call(chart, options, callback);
 		    }
-
-		    bubbleSizes = bubbleLegend.getBubbleSizes();
-		    bubbleLegend.autoRanges = false; // to not fall in to infinite loop
-
-		    // Update legend with calculated ranges and without animation
-		    this.update({
-		        legend: {
-		            bubbleLegend: {
-		                minSize: bubbleSizes[0],
-		                maxSize: bubbleSizes[1],
-		                ranges: bubbleLegend.getRanges()
-		            }
-		        }
-		    }, true, false, animation);
-
-		    // Update legend sizes
-		    this.legend.update();
-		    // Correct series bubbles dimensions
-		    this.reflow();
-		    this.legend.bubbleLegend.autoRanges = true;
-		    // Prevent animation on resize
-		    legend.options.bubbleLegend.animation = false;
 		});
 
 	}(Highcharts));
